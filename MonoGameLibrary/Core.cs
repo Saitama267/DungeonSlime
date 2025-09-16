@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using MonoGameLibrary.Audio;
 using MonoGameLibrary.Input;
 using System;
 using System.Collections.Generic;
@@ -52,6 +53,11 @@ namespace MonoGameLibrary
         public static bool ExitOnEscape { get; set; }
 
         /// <summary>
+        /// Gets a referemce to the audio control system.
+        /// </summary>
+        public static AudioController Audio { get; private set; }
+
+        /// <summary>
         /// Creates a new Core instance.
         /// </summary>
         /// <param name="title">The title to display in the title bar of the game window.</param>
@@ -95,11 +101,22 @@ namespace MonoGameLibrary
             SpriteBatch = new SpriteBatch(GraphicsDevice);
 
             Input = new InputManager();
+
+            Audio = new AudioController();
+        }
+
+        protected override void UnloadContent()
+        {
+            Audio.Dispose();
+
+            base.UnloadContent();
         }
 
         protected override void Update(GameTime gameTime)
         {
             Input.Update(gameTime);
+
+            Audio.Update();
 
             if (ExitOnEscape && Input.Keyboard.IsKeyDown(Keys.Escape))
             {
