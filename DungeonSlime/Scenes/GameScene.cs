@@ -1,8 +1,13 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Gum.DataTypes;
+using Gum.Forms.Controls;
+using Gum.Wireframe;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
+using MonoGameGum;
+using MonoGameGum.GueDeriving;
 using MonoGameLibrary;
 using MonoGameLibrary.Graphics;
 using MonoGameLibrary.Input;
@@ -42,6 +47,12 @@ namespace DungeonSlime.Scenes
 
         private Vector2 _scoteTextOrigin;
 
+        private Panel _pausePanel;
+
+        private Button _resumeButton;
+
+        private SoundEffect _uiSoundEffect;
+
         public override void Initialize()
         {
             base.Initialize();
@@ -69,6 +80,8 @@ namespace DungeonSlime.Scenes
             _scoteTextOrigin = new Vector2(0, scoreTextYOrigin);
 
             AssignRandomBatVelocity();
+
+            InitializeUI();
         }
 
         public override void LoadContent()
@@ -89,10 +102,19 @@ namespace DungeonSlime.Scenes
             _collectSoundEffect = Content.Load<SoundEffect>("audio/collect");
 
             _font = Content.Load<SpriteFont>("fonts/04B_30");
+
+            _uiSoundEffect = Core.Content.Load<SoundEffect>("audio/ui");
         }
 
         public override void Update(GameTime gameTime)
         {
+            GumService.Default.Update(gameTime);
+
+            if (_pausePanel.IsVisible)
+            {
+                return;
+            }
+
             _slime.Update(gameTime);
 
             _bat.Update(gameTime);
@@ -208,6 +230,8 @@ namespace DungeonSlime.Scenes
             );
 
             Core.SpriteBatch.End();
+
+            GumService.Default.Draw();
         }
 
         private void AssignRandomBatVelocity()
@@ -227,7 +251,7 @@ namespace DungeonSlime.Scenes
 
             if (keyboard.WasKeyJustPressed(Keys.Escape))
             {
-                Core.ChangeScene(new TitleScene());
+                PauseGame();
             }
 
             float speed = MOVEMENT_SPEED;
@@ -280,7 +304,7 @@ namespace DungeonSlime.Scenes
 
             if (gamePadOne.IsButtonDown(Buttons.Back))
             {
-                Core.ChangeScene(new TitleScene());
+                PauseGame();
             }
 
             float speed = MOVEMENT_SPEED;
@@ -321,6 +345,75 @@ namespace DungeonSlime.Scenes
                     _slimePosition.X += speed;
                 }
             }
+        }
+
+        private void PauseGame()
+        {
+            _pausePanel.IsVisible = true;
+
+            _resumeButton.IsFocused = true;
+        }
+
+        private void CreatePausePanel()
+        {
+            _pausePanel = new Panel();
+            _pausePanel.Anchor(Anchor.Center);
+            _pausePanel.Visual.WidthUnits = DimensionUnitType.Absolute;
+            _pausePanel.Visual.HeightUnits = DimensionUnitType.Absolute;
+            _pausePanel.Visual.Height = 70;
+            _pausePanel.Visual.Width = 264;
+            _pausePanel.IsVisible = false;
+            _pausePanel.AddToRoot();
+
+            var background = new ColoredRectangleRuntime();
+            background.Dock(Dock.Fill);
+            background.Color = Color.DarkBlue;
+            _pausePanel.AddChild(background);
+
+            var textInstance = new TextRuntime();
+            textInstance.Text = "PAUSED";
+            textInstance.X = 10f;
+            textInstance.Y = 10f;
+            _pausePanel.AddChild(textInstance);
+
+            _resumeButton = new Button();
+            _resumeButton.Text = "RESUME";
+            _resumeButton.Anchor(Anchor.BottomLeft);
+            _resumeButton.Visual.X = 9f;
+            _resumeButton.Visual.Y = -9f;
+            _resumeButton.Visual.Width = 80;
+            _resumeButton.Click += HandleResumeButtonClicked;
+            _pausePanel.AddChild(_resumeButton);
+
+            var quitButton = new Button();
+            quitButton.Text = "QUIT";
+            quitButton.Anchor(Anchor.BottomRight);
+            quitButton.Visual.X = -9f;
+            quitButton.Visual.Y = -9f;
+            quitButton.Width = 80;
+            quitButton.Click += HandleQuitButtonClicked;
+            _pausePanel.AddChild(quitButton);
+        }
+
+        private void HandleQuitButtonClicked(object sender, EventArgs e)
+        {
+            Core.Audio.PlaySoundEffect(_uiSoundEffect);
+
+            Core.ChangeScene(new TitleScene());
+        }
+
+        private void HandleResumeButtonClicked(object sender, EventArgs e)
+        {
+            Core.Audio.PlaySoundEffect(_uiSoundEffect);
+
+            _pausePanel.IsVisible = false;
+        }
+
+        private void InitializeUI()
+        {
+            GumService.Default.Root.Children.Clear();
+
+            CreatePausePanel();
         }
     }
 }
